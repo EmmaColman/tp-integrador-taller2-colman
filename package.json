@@ -1,0 +1,16 @@
+{
+  "name": "tp-integrador-taller2-colman",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Trabajo práctico integrador de Taller de Programación 2 - API REST con arquitectura en capas.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
