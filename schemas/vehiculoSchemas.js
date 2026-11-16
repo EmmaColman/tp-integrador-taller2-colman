@@ -16,8 +16,4 @@ export const updateVehiculoSchema = createVehiculoSchema.partial().refine(
   (data) => Object.keys(data).length > 0,
   'Debe enviar al menos un campo',
 );
-export const vehiculoParamsSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'El ID debe ser un entero positivo')
-    .transform(Number).pipe(z.number().int().positive().max(Number.MAX_SAFE_INTEGER)),
-}).strict();
-export const emptyQuerySchema = z.object({}).strict();
+export { idParamsSchema as vehiculoParamsSchema, emptyQuerySchema } from './commonSchemas.js';

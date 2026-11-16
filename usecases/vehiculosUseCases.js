@@ -1,6 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 
-export function makeVehiculosUseCases({ vehiculosDao }) {
+export function makeVehiculosUseCases({ vehiculosDao, reparacionesDao }) {
   async function getById(id) {
     const vehiculo = await vehiculosDao.findById(id);
     if (!vehiculo) {
@@ -30,6 +30,9 @@ export function makeVehiculosUseCases({ vehiculosDao }) {
     },
     async delete(id) {
       await getById(id);
+      if (await reparacionesDao.existsByVehiculoId(id)) {
+        throw new AppError('VEHICULO_CON_REPARACIONES', 'No se puede eliminar un vehículo con reparaciones', 409);
+      }
       await vehiculosDao.delete(id);
     },
   };
