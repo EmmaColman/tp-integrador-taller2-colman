@@ -10,6 +10,7 @@ export function makeVehiculosUseCases({ vehiculosDao, reparacionesDao }) {
   }
 
   async function checkPatente(patente, currentId) {
+    // En una actualización, conservar la patente del propio vehículo es válido
     const existing = await vehiculosDao.findByPatente(patente);
     if (existing && existing.id !== currentId) {
       throw new AppError('PATENTE_DUPLICADA', 'La patente ya está registrada', 409);
@@ -24,12 +25,14 @@ export function makeVehiculosUseCases({ vehiculosDao, reparacionesDao }) {
       return vehiculosDao.create(data);
     },
     async update(id, changes) {
+      // Primero comprobamos existencia, después posibles conflictos de patente.
       await getById(id);
       if (changes.patente !== undefined) await checkPatente(changes.patente, id);
       return vehiculosDao.update(id, changes);
     },
     async delete(id) {
       await getById(id);
+      // Se bloquea la eliminación aunque las reparaciones ya estén finalizadas
       if (await reparacionesDao.existsByVehiculoId(id)) {
         throw new AppError('VEHICULO_CON_REPARACIONES', 'No se puede eliminar un vehículo con reparaciones', 409);
       }

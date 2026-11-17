@@ -16,6 +16,7 @@ export function validate(schemas) {
       validated[source] = result.data;
     }
 
+    // El controlador recibe los valores normalizados por Zod, no la entrada original.
     res.locals.validated = validated;
     next();
   };

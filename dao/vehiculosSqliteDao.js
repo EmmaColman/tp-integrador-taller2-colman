@@ -3,6 +3,7 @@ import { withSqliteErrors } from './sqliteErrors.js';
 
 export function makeVehiculosSqliteDao({ Vehiculo }) {
   return {
+    // raw y get({ plain: true }) evitan entregar instancias de Sequelize a otras capas.
     findAll: () => Vehiculo.findAll({ raw: true, order: [['id', 'ASC']] }),
     findById: (id) => Vehiculo.findByPk(id, { raw: true }),
     findByPatente: (patente) => Vehiculo.findOne({ where: { patente }, raw: true }),

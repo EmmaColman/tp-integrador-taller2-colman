@@ -11,6 +11,7 @@ export function makeReparacionesMemoryDao() {
       return reparacion ? { ...reparacion } : null;
     },
     async existsByVehiculoId(vehiculoId) {
+      // Solo consulta la relación; el caso de uso decide si puede borrar el vehículo.
       return reparaciones.some((item) => item.vehiculoId === vehiculoId);
     },
     async create(data) {
@@ -22,6 +23,7 @@ export function makeReparacionesMemoryDao() {
       const index = reparaciones.findIndex((item) => item.id === id);
       if (index === -1) return null;
       const current = reparaciones[index];
+      // Conservamos los datos inmutables al combinar la reparación con sus cambios.
       reparaciones[index] = {
         ...current, ...changes,
         id: current.id, vehiculoId: current.vehiculoId, fechaIngreso: current.fechaIngreso,
