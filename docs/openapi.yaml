@@ -1,0 +1,414 @@
+openapi: 3.0.3
+info:
+  title: API Taller Mecánico
+  version: 1.0.0
+  description: |
+    Gestión de vehículos y reparaciones. Un vehículo tiene cero o muchas reparaciones;
+    cada reparación pertenece a un vehículo existente mediante vehiculoId.
+    No requiere autenticación. Las respuestas son objetos o arrays directamente, sin envoltorio data.
+    Todos los endpoints rechazan parámetros query: no hay filtros ni paginación.
+    Los textos se recortan antes de validar sus longitudes; los obligatorios no pueden quedar vacíos.
+    Se evalúa primero la entrada (400), luego la existencia (404) y después el negocio (409).
+    Un rechazo no guarda cambios parciales. El modo memory pierde datos al reiniciar;
+    sqlite los conserva. El contrato HTTP es el mismo en ambos modos.
+servers:
+  - url: /
+    description: Servidor actual (memory o sqlite según su configuración)
+tags:
+  - name: Vehículos
+  - name: Reparaciones
+paths:
+  /api/vehiculos:
+    post:
+      tags: [Vehículos]
+      operationId: registrarVehiculo
+      summary: Registrar vehículo
+      description: Genera el ID. La patente normalizada no puede pertenecer a otro vehículo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehiculoAlta' }
+            example: { patente: ' ab 123 cd ', marca: Toyota, modelo: Etios, anio: 2018 }
+      responses:
+        '201':
+          description: Vehículo creado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vehiculo' }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '409':
+          description: Patente ya registrada (PATENTE_DUPLICADA).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: { code: PATENTE_DUPLICADA, message: La patente ya está registrada } }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+    get:
+      tags: [Vehículos]
+      operationId: listarVehiculos
+      summary: Listar vehículos
+      description: Devuelve todos los vehículos, o un array vacío. No admite parámetros query.
+      responses:
+        '200':
+          description: Listado de vehículos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Vehiculo' }
+              example: [{ id: 1, patente: AB 123 CD, marca: Toyota, modelo: Etios, anio: 2018 }]
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+  /api/vehiculos/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    get:
+      tags: [Vehículos]
+      operationId: obtenerVehiculo
+      summary: Obtener vehículo por ID
+      responses:
+        '200':
+          description: Vehículo encontrado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vehiculo' }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/VehiculoInexistente' }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+    patch:
+      tags: [Vehículos]
+      operationId: actualizarVehiculo
+      summary: Actualizar parcialmente vehículo
+      description: |
+        Solo admite patente, marca, modelo y anio. Rechaza cuerpo vacío, campos
+        desconocidos e ID. Los campos omitidos se conservan. La patente del mismo
+        vehículo es válida; la de otro produce 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehiculoCambio' }
+            example: { modelo: Corolla }
+      responses:
+        '200':
+          description: Vehículo actualizado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vehiculo' }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/VehiculoInexistente' }
+        '409':
+          description: Patente perteneciente a otro vehículo (PATENTE_DUPLICADA).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: { code: PATENTE_DUPLICADA, message: La patente ya está registrada } }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+    delete:
+      tags: [Vehículos]
+      operationId: eliminarVehiculo
+      summary: Eliminar vehículo sin reparaciones
+      description: Se bloquea si tiene alguna reparación, incluso finalizada.
+      responses:
+        '204': { description: Vehículo eliminado. Sin cuerpo de respuesta. }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/VehiculoInexistente' }
+        '409':
+          description: El vehículo tiene reparaciones asociadas.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: { code: VEHICULO_CON_REPARACIONES, message: No se puede eliminar un vehículo con reparaciones } }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+  /api/reparaciones:
+    post:
+      tags: [Reparaciones]
+      operationId: registrarReparacion
+      summary: Registrar reparación de un vehículo existente
+      description: |
+        Solo recibe vehiculoId y descripcionProblema. Genera ID y fechaIngreso UTC,
+        asigna estado pendiente y trabajoRealizado vacío. Rechaza cualquier otro campo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReparacionAlta' }
+            example: { vehiculoId: 1, descripcionProblema: Ruido al frenar }
+      responses:
+        '201':
+          description: Reparación creada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reparacion' }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/VehiculoInexistente' }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+    get:
+      tags: [Reparaciones]
+      operationId: listarReparaciones
+      summary: Listar reparaciones
+      description: Devuelve todas las reparaciones, o un array vacío. No admite parámetros query.
+      responses:
+        '200':
+          description: Listado de reparaciones.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Reparacion' }
+              example: []
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+  /api/reparaciones/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    get:
+      tags: [Reparaciones]
+      operationId: obtenerReparacion
+      summary: Obtener reparación por ID
+      responses:
+        '200':
+          description: Reparación encontrada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reparacion' }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/ReparacionInexistente' }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+    patch:
+      tags: [Reparaciones]
+      operationId: actualizarReparacion
+      summary: Actualizar reparación y avanzar su estado
+      description: |
+        Solo admite descripcionProblema, trabajoRealizado y estado, al menos uno.
+        ID, vehiculoId y fechaIngreso son inmutables; enviarlos produce 400.
+        Solo permite pendiente → en_proceso → finalizada, sin saltos ni retrocesos.
+        Repetir un estado editable se acepta sin transición efectiva.
+        La descripción puede editarse en pendiente o en_proceso.
+        Registrar trabajo requiere estar previamente en_proceso: iniciar y registrar
+        trabajo juntos se rechaza, incluso si el texto está vacío.
+        En proceso se puede modificar o vaciar el trabajo mientras no se finalice.
+        Para finalizar se requiere trabajo no vacío tras recortar espacios.
+        Si ya estaba en proceso, se puede registrar trabajo y finalizar en un mismo PATCH.
+        Una reparación finalizada no admite ninguna actualización, ni los mismos valores.
+        Una transición efectiva guardada emite reparacion.finalizada y notifica por consola;
+        un fallo de notificación no cambia el éxito HTTP. Repetir la finalización devuelve
+        409 y no notifica nuevamente. Una entrada inválida tiene prioridad (400).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReparacionCambio' }
+            examples:
+              iniciar:
+                summary: Primero iniciar, sin trabajo
+                value: { estado: en_proceso }
+              registrarTrabajo:
+                summary: Registrar trabajo si ya está en proceso
+                value: { trabajoRealizado: Se reemplazaron las pastillas de freno }
+              finalizar:
+                summary: Finalizar si ya hay trabajo registrado
+                value: { estado: finalizada }
+              trabajarYFinalizar:
+                summary: Registrar trabajo y finalizar si ya estaba en proceso
+                value: { trabajoRealizado: Se reemplazaron las pastillas de freno, estado: finalizada }
+      responses:
+        '200':
+          description: Reparación actualizada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reparacion' }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/ReparacionInexistente' }
+        '409':
+          description: Operación incompatible con las reglas o el estado actual. No guarda cambios.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                transicion:
+                  value: { error: { code: TRANSICION_INVALIDA, message: La transición de estado no está permitida } }
+                trabajoNoPermitido:
+                  value: { error: { code: TRABAJO_NO_PERMITIDO, message: Debe iniciar la reparación antes de registrar trabajo } }
+                sinTrabajo:
+                  value: { error: { code: TRABAJO_REQUERIDO, message: Debe registrar el trabajo realizado antes de finalizar } }
+                yaFinalizada:
+                  value: { error: { code: REPARACION_FINALIZADA, message: Una reparación finalizada no puede modificarse } }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+    delete:
+      tags: [Reparaciones]
+      operationId: eliminarReparacion
+      summary: Eliminar reparación en cualquier estado
+      description: Permite eliminar incluso finalizadas. No elimina el vehículo ni emite eventos.
+      responses:
+        '204': { description: Reparación eliminada. Sin cuerpo de respuesta. }
+        '400': { $ref: '#/components/responses/EntradaInvalida' }
+        '404': { $ref: '#/components/responses/ReparacionInexistente' }
+        '500': { $ref: '#/components/responses/ErrorInterno' }
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: Entero positivo escrito solo con dígitos (sin signo ni decimales), hasta Number.MAX_SAFE_INTEGER.
+      schema: { $ref: '#/components/schemas/Id' }
+      example: 1
+  schemas:
+    Id:
+      type: integer
+      minimum: 1
+      maximum: 9007199254740991
+      example: 1
+    Patente:
+      type: string
+      minLength: 1
+      description: Obligatoria y única. Se recortan espacios exteriores y convierte a mayúsculas; conserva espacios interiores, sin formato nacional obligatorio.
+      example: AB 123 CD
+    MarcaModelo:
+      type: string
+      minLength: 1
+      maxLength: 50
+      description: Texto obligatorio; se recortan espacios exteriores antes de validar.
+      example: Toyota
+    Anio:
+      type: integer
+      minimum: 1900
+      description: Hasta el año actual más uno, inclusive. El máximo se calcula al validar cada petición, no es un valor fijo de esta especificación.
+      example: 2018
+    DescripcionProblema:
+      type: string
+      minLength: 1
+      maxLength: 500
+      description: Texto obligatorio; se recortan espacios exteriores antes de validar.
+      example: Ruido al frenar
+    TrabajoRealizado:
+      type: string
+      maxLength: 500
+      description: Se recortan espacios exteriores. Puede estar vacío en proceso, pero no al finalizar.
+      example: Se reemplazaron las pastillas de freno
+    Estado:
+      type: string
+      enum: [pendiente, en_proceso, finalizada]
+      example: pendiente
+    VehiculoAlta:
+      type: object
+      additionalProperties: false
+      required: [patente, marca, modelo, anio]
+      properties:
+        patente: { $ref: '#/components/schemas/Patente' }
+        marca: { $ref: '#/components/schemas/MarcaModelo' }
+        modelo: { $ref: '#/components/schemas/MarcaModelo' }
+        anio: { $ref: '#/components/schemas/Anio' }
+    VehiculoCambio:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        patente: { $ref: '#/components/schemas/Patente' }
+        marca: { $ref: '#/components/schemas/MarcaModelo' }
+        modelo: { $ref: '#/components/schemas/MarcaModelo' }
+        anio: { $ref: '#/components/schemas/Anio' }
+    Vehiculo:
+      type: object
+      additionalProperties: false
+      required: [id, patente, marca, modelo, anio]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        patente: { $ref: '#/components/schemas/Patente' }
+        marca: { $ref: '#/components/schemas/MarcaModelo' }
+        modelo: { $ref: '#/components/schemas/MarcaModelo' }
+        anio: { $ref: '#/components/schemas/Anio' }
+      example: { id: 1, patente: AB 123 CD, marca: Toyota, modelo: Etios, anio: 2018 }
+    ReparacionAlta:
+      type: object
+      additionalProperties: false
+      required: [vehiculoId, descripcionProblema]
+      properties:
+        vehiculoId: { $ref: '#/components/schemas/Id' }
+        descripcionProblema: { $ref: '#/components/schemas/DescripcionProblema' }
+    ReparacionCambio:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        descripcionProblema: { $ref: '#/components/schemas/DescripcionProblema' }
+        trabajoRealizado: { $ref: '#/components/schemas/TrabajoRealizado' }
+        estado: { $ref: '#/components/schemas/Estado' }
+    Reparacion:
+      type: object
+      additionalProperties: false
+      required: [id, vehiculoId, descripcionProblema, trabajoRealizado, estado, fechaIngreso]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        vehiculoId: { $ref: '#/components/schemas/Id' }
+        descripcionProblema: { $ref: '#/components/schemas/DescripcionProblema' }
+        trabajoRealizado: { $ref: '#/components/schemas/TrabajoRealizado' }
+        estado: { $ref: '#/components/schemas/Estado' }
+        fechaIngreso:
+          type: string
+          format: date-time
+          description: Generada por el sistema, inmutable y expresada en UTC.
+          example: '2026-11-16T15:00:00.000Z'
+      example:
+        id: 1
+        vehiculoId: 1
+        descripcionProblema: Ruido al frenar
+        trabajoRealizado: ''
+        estado: pendiente
+        fechaIngreso: '2026-11-16T15:00:00.000Z'
+    Error:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          additionalProperties: false
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }
+            message: { type: string, example: Datos de entrada inválidos }
+            details:
+              type: array
+              description: Solo aparece cuando el error incluye detalles de validación.
+              items:
+                type: object
+                required: [path, message]
+                properties:
+                  path: { type: string, example: body.marca }
+                  message: { type: string, example: El texto es obligatorio }
+  responses:
+    EntradaInvalida:
+      description: Entrada inválida, query no permitido, campos desconocidos o inmutables, PATCH vacío o JSON mal formado. Se valida antes de consultar existencia o negocio.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            validacion:
+              value:
+                error:
+                  code: VALIDATION_ERROR
+                  message: Datos de entrada inválidos
+                  details: [{ path: body.marca, message: El texto es obligatorio }]
+            jsonMalFormado:
+              value: { error: { code: INVALID_JSON, message: El cuerpo debe ser JSON válido } }
+    VehiculoInexistente:
+      description: El ID es válido, pero el vehículo no existe.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: VEHICULO_NOT_FOUND, message: Vehículo no encontrado } }
+    ReparacionInexistente:
+      description: El ID es válido, pero la reparación no existe.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: REPARACION_NOT_FOUND, message: Reparación no encontrada } }
+    ErrorInterno:
+      description: Error inesperado del servidor; no expone detalles internos de la base de datos.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: INTERNAL_ERROR, message: Error interno del servidor } }
