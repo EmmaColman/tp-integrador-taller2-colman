@@ -1,6 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 
-export function makeReparacionesUseCases({ reparacionesDao, vehiculosDao }) {
+export function makeReparacionesUseCases({ reparacionesDao, vehiculosDao, eventBus }) {
   async function getById(id) {
     const reparacion = await reparacionesDao.findById(id);
     if (!reparacion) {
@@ -44,7 +44,11 @@ export function makeReparacionesUseCases({ reparacionesDao, vehiculosDao }) {
         throw new AppError('TRABAJO_REQUERIDO', 'Debe registrar el trabajo realizado antes de finalizar', 409);
       }
 
-      return reparacionesDao.update(id, changes);
+      const updated = await reparacionesDao.update(id, changes);
+      if (current.estado === 'en_proceso' && updated?.estado === 'finalizada') {
+        eventBus.emit('reparacion.finalizada', { ...updated });
+      }
+      return updated;
     },
     async delete(id) {
       await getById(id);

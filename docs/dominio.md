@@ -38,4 +38,4 @@ Las actualizaciones son parciales mediante PATCH. Se rechazan peticiones vacías
 
 ## Evento de finalización
 
-`reparacion.finalizada` se emite únicamente después de guardar un cambio efectivo a finalizada y genera una notificación por consola. Si falla el guardado, no se emite; si falla la notificación, la reparación permanece finalizada y la operación no falla. Repetir la finalización no genera otra notificación.
+`reparacion.finalizada` se emite después de guardar una transición efectiva a finalizada. Un listener independiente recibe el evento y utiliza un notificador separado para mostrar el mensaje en consola. Si falla el guardado no se emite el evento, si falla la notificación, la reparación permanece finalizada y la operación no falla. Repetir la finalización no genera notificaciones duplicadas.
