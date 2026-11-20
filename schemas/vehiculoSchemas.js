@@ -11,7 +11,7 @@ const vehiculoFields = {
   ),
 };
 
-// strict rechaza campos extra; partial permite PATCH, pero el refine exige algún cambio.
+// strict rechaza campos extra, partial permite PATCH, pero el refine exige algún cambio
 export const createVehiculoSchema = z.object(vehiculoFields).strict();
 export const updateVehiculoSchema = createVehiculoSchema.partial().refine(
   (data) => Object.keys(data).length > 0,

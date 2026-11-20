@@ -10,7 +10,7 @@ export async function connectSqlite(storage) {
     const models = defineModels(sequelize);
     await sequelize.authenticate();
     await sequelize.query('PRAGMA foreign_keys = ON');
-    // Crea las tablas faltantes sin borrar las existentes ni sus datos.
+    // Crea las tablas faltantes sin borrar las existentes ni sus datos
     await sequelize.sync();
     return { sequelize, ...models };
   } catch (error) {

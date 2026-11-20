@@ -18,7 +18,7 @@ export function defineModels(sequelize) {
     fechaIngreso: { type: DataTypes.STRING, allowNull: false },
   }, { tableName: 'reparaciones', timestamps: false });
 
-  // RESTRICT protege la relación en la base sin borrar reparaciones en cascada.
+  // RESTRICT protege la relación en la base sin borrar reparaciones en cascada
   Vehiculo.hasMany(Reparacion, {
     foreignKey: 'vehiculoId', as: 'reparaciones', onDelete: 'RESTRICT', onUpdate: 'RESTRICT',
   });

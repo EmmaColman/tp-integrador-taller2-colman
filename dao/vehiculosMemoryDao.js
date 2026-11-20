@@ -1,11 +1,11 @@
 export function makeVehiculosMemoryDao() {
-  // El array y el contador pertenecen a esta instancia y se pierden al reiniciar.
+  // El array y el contador pertenecen a esta instancia y se pierden al reiniciar
   const vehiculos = [];
   let nextId = 1;
 
   return {
     async findAll() {
-      // Devolvemos copias para evitar cambios al array desde otras capas.
+      // Devolvemos copias para evitar cambios al array desde otras capas
       return vehiculos.map((vehiculo) => ({ ...vehiculo }));
     },
     async findById(id) {

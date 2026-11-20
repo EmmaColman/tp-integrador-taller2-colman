@@ -5,7 +5,7 @@ export async function withSqliteErrors(operation, foreignKeyError) {
   try {
     return await operation();
   } catch (error) {
-    // Traducimos restricciones de SQLite al mismo formato de error de la aplicación.
+    // Traducimos restricciones de SQLite al mismo formato de error de la aplicación
     if (error instanceof UniqueConstraintError) {
       throw new AppError('PATENTE_DUPLICADA', 'La patente ya está registrada', 409);
     }

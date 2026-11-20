@@ -17,7 +17,7 @@ export function makeReparacionesSqliteDao({ Reparacion }) {
     update: (id, changes) => withSqliteErrors(async () => {
       const reparacion = await Reparacion.findByPk(id);
       if (!reparacion) return null;
-      // La lista de campos deja fuera ID, vehículo y fecha de ingreso.
+      // La lista de campos deja fuera ID, vehículo y fecha de ingreso
       await reparacion.update(changes, { fields: ['descripcionProblema', 'trabajoRealizado', 'estado'] });
       return reparacion.get({ plain: true });
     }, missingVehiculo()),

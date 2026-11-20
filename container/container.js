@@ -15,14 +15,14 @@ import { makeReparacionesUseCases } from '../usecases/reparacionesUseCases.js';
 import { makeReparacionesController } from '../controllers/reparacionesController.js';
 import { makeReparacionesRouter } from '../routes/reparacionesRoutes.js';
 
-// Esperamos la persistencia antes de preparar la aplicación y abrir el servidor.
+// Esperamos la persistencia antes de preparar la aplicación y abrir el servidor
 const { vehiculosDao, reparacionesDao, close } = await makeDaos(config);
 export const closePersistence = close;
-// El mismo bus conecta al emisor con el listener, sin unir sus responsabilidades.
+// El mismo bus conecta al emisor con el listener, sin unir sus responsabilidades
 const eventBus = new EventEmitter();
 const notifier = makeConsoleNotifier();
 registerReparacionFinalizadaListener({ eventBus, notifier });
-// Las dependencias se crean aquí y se entregan a cada capa por parámetro.
+// Las dependencias se crean aca y se entregan a cada capa por parámetro
 const vehiculosUseCases = makeVehiculosUseCases({ vehiculosDao, reparacionesDao });
 const vehiculosController = makeVehiculosController({ vehiculosUseCases });
 const vehiculosRouter = makeVehiculosRouter({ vehiculosController });
@@ -37,6 +37,6 @@ app.use(router);
 app.use('/api/vehiculos', vehiculosRouter);
 app.use('/api/reparaciones', reparacionesRouter);
 await setupSwagger(app);
-// Estos middlewares van al final: atienden rutas sin coincidencia y errores.
+// Estos middlewares van al final, atienden rutas sin coincidencia y errores
 app.use(notFound);
 app.use(errorHandler);
