@@ -3,20 +3,20 @@ info:
   title: API Taller Mecánico
   version: 1.0.0
   description: |
-    Gestión de vehículos y reparaciones. Un vehículo tiene cero o muchas reparaciones;
-    cada reparación pertenece a un vehículo existente mediante vehiculoId.
-    No requiere autenticación. Las respuestas son objetos o arrays directamente, sin envoltorio data.
-    Todos los endpoints rechazan parámetros query: no hay filtros ni paginación.
-    Los textos se recortan antes de validar sus longitudes; los obligatorios no pueden quedar vacíos.
-    Se evalúa primero la entrada (400), luego la existencia (404) y después el negocio (409).
-    Un rechazo no guarda cambios parciales. El modo memory pierde datos al reiniciar;
-    sqlite los conserva. El contrato HTTP es el mismo en ambos modos.
+    API REST para gestionar los vehículos y las reparaciones de un taller mecánico.
+    
+    Permite registrar, consultar, modificar y eliminar vehículos y reparaciones.
+    Incluye validaciones de datos, reglas de negocio y control de estados para el seguimiento de las reparaciones.
+
+    La API puede utilizar persistencia en memoria o SQLite mediante sequelize.
 servers:
   - url: /
     description: Servidor actual (memory o sqlite según su configuración)
 tags:
   - name: Vehículos
+    description: Permite registrar, consultar, modificar y eliminar vehículos.
   - name: Reparaciones
+    description: Permite gestionar las reparaciones de los vehículos y realizar el seguimiento de sus estados.
 paths:
   /api/vehiculos:
     post:
